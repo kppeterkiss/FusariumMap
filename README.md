@@ -24,4 +24,23 @@
   - ArcGIS Fuzárium térkép a MATE DB-ből
 
 # Implementation 
+## V1 verzió: Python / QGIS  és ArcGIS:
+Loading the data:
+### start database
+
+
+```docker compose up```
+-  postgres + pgadmin
+- ```.env``` file
+```
+POSTGRES_PASSWORD=secret
+PGADMIN_DEFAULT_EMAIL=admin@example.com
+PGADMIN_DEFAULT_PASSWORD=secret
+```
+
+We can check (or delete) the tables using pgAdmin, that is also started by   ```localhost:15080``` using ```PGADMIN_DEFAULT_EMAIL``` and  ```PGADMIN_DEFAULT_PASSWORD```.
+
+### Generating datatable with python:
+
+Run the ```research.ipynb``` , that will pull last 7 days data from the database, and calculate ```p```
  

@@ -1,0 +1,13 @@
+name: fusarium_env
+
+dependencies:
+  - python==3.11
+  - psycopg2
+  - pandas
+  - sqlalchemy
+  - sqlalchemy_util
+  - pandas
+  - partd
+  - bokeh
+  - pip:
+    - git+https://github.com/blaze/dask.git#egg=dask[complete]

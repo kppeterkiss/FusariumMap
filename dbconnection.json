@@ -1,0 +1,7 @@
+{
+  "DB_HOST":"db",
+  "DB_PORT":5432,
+  "DATABASE":"Kantar",
+  "DB_USER":"mate",
+  "DB_PASS":"mate"
+}
