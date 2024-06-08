@@ -43,4 +43,15 @@ We can check (or delete) the tables using pgAdmin, that is also started by   ```
 ### Generating datatable with python:
 
 Run the ```research.ipynb``` , that will pull last 7 days data from the database, and calculate ```p```
- 
+
+
+ - Start ArcGIS
+ - Add Data  from top menu - chose output csv
+ - Display XY data after right click - detects automatically coordinates -OK
+ - Properties - Time - each feature has a single time filed - leave at "Time"
+ - Symbology :
+![Setting symbology](img/symbology.png "Setting symbology")
+
+First result:
+![Time + Heatmap](img/arcgisv1.gif "Time + Heatmap")
+
