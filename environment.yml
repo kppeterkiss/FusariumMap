@@ -1,13 +1,23 @@
-name: fusarium_env
-
+name: fusarium_env1
+channels:
+  - anaconda
+  - anaconda-fusion
+  - defaults
+  - conda-forge
 dependencies:
-  - python==3.11
+  - python==3.12
   - psycopg2
   - pandas
   - sqlalchemy
-  - sqlalchemy_util
+  - sqlalchemy-utils
   - pandas
   - partd
   - bokeh
-  - pip:
-    - git+https://github.com/blaze/dask.git#egg=dask[complete]
+  - schedule
+  - pip
+  - bs4
+  - ipykernel
+  - jupyter
+  - python-dotenv
+  #- pip:
+  #  - git+https://github.com/blaze/dask.git#egg=dask[complete]

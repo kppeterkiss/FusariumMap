@@ -55,3 +55,19 @@ Run the ```research.ipynb``` , that will pull last 7 days data from the database
 First result:
 ![Time + Heatmap](img/arcgisv1.gif "Time + Heatmap")
 
+## V2
+- containerise loading code for scheduled execution
+  - dataload should be executed in every hour the same time
+- load the processed data into separate table
+  - download fresh data
+    - check what we have already in db, download only those files what we dont have
+    - load into base table
+    - temp location, then remove files
+    - load all historical data first? 
+  - load previous day from fusarium table 
+  - calculate recent p add to fusarium table new data rows  
+
+```conda env create -f environment.yml```
+```conda activate fusarium_env1```
+```python -m ipykernel install --user --name=fusarium_env1
+```
