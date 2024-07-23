@@ -71,3 +71,6 @@ First result:
 ```conda activate fusarium_env1```
 ```python -m ipykernel install --user --name=fusarium_env1
 ```
+
+in env file: 
+```DB_HOST=postgres``` for running python in swarm, otherwise ```DB_HOST=postgres```

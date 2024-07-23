@@ -38,11 +38,13 @@ fusarium_table_name = os.getenv('FUSARIUM_TABLE_NAME')
 
 
 
-def  get_connection_env():
+def  get_connection_env(swarm_mode):
     CHARSET = "utf-8"
 
+    DB_HOST = os.getenv("DB_HOST_LOCAL")
+    if swarm_mode:
+        DB_HOST = os.getenv("DB_HOST_SWARM")
     # for local test with trust auth
-    DB_HOST = os.getenv("DB_HOST")
     DB_USER = os.getenv("DB_USER")
     print("db usr", DB_USER)
     DB_PORT = os.getenv("DB_PORT")
@@ -293,7 +295,7 @@ def setup_dirs():
         # Create a new directory because it does not exist
         os.makedirs(hourly_data_folder_extracted)
 
-def main():
+def main(swarm_mode):
     print('Chacking for data updates..')
     load_dotenv()
     engine = get_connection_env()
@@ -315,11 +317,26 @@ def main():
 
 import schedule
 import time
+import argparse
+
+
+def arg_parse():
+    """
+    Parse arguements to the detect module
+
+    """
+
+    parser = argparse.ArgumentParser(description='YOLO v3 Detection Module')
+
+    parser.add_argument('--swarm',
+                        action='store_true', help="Switch to swarm mode")
+
+    return parser.parse_args()
 
 if __name__ == "__main__":
-
+    args = arg_parse()
     i=0
-    schedule.every().hour.at(":10").do(main)
+    schedule.every().hour.at(":10").do(main, args.swarm)
 
     while i < 30:
         schedule.run_pending()
