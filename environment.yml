@@ -18,6 +18,9 @@ dependencies:
   - bs4
   - ipykernel
   - jupyter
+  - pyodbc
+  - fakechroot
+  - docker-py
   - python-dotenv
   #- pip:
   #  - git+https://github.com/blaze/dask.git#egg=dask[complete]

@@ -55,10 +55,10 @@ Run the ```research.ipynb``` , that will pull last 7 days data from the database
 First result:
 ![Time + Heatmap](img/arcgisv1.gif "Time + Heatmap")
 
-## V2
-- containerise loading code for scheduled execution
-  - dataload should be executed in every hour the same time
-- load the processed data into separate table
+## V2 
+- Data is stored in 3 mssql tables in database ```dbo``` 
+- containerised python loading code each hours scheduled execution
+- load the processed data into separate table: ````
   - download fresh data
     - check what we have already in db, download only those files what we dont have
     - load into base table
@@ -67,6 +67,31 @@ First result:
   - load previous day from fusarium table 
   - calculate recent p add to fusarium table new data rows  
 
+### Data collection:
+
+prerequistes:
+ - [Git](https://git-scm.com/downloads)
+ - [Docker](https://docs.docker.com/desktop/install/windows-install/)
+
+Install and Run:
+- in (for example ) Git Bash: ```git clone https://github.com/kppeterkiss/FusariumMap.git```
+- ```cd FusariumMap```
+- After starting Docker Daemon (Desktop) ```docker compose up```
+
+### Connect from ARCGis:
+
+Adding database:
+1.
+![add connection 1](img/add_db.png)
+2. (pw and user in ```.env``` file)
+![add connection 2](img/db_conn.png)
+3.
+![add data from table](img/add_data_to_proj.png)
+4. Continues as at [v1](#Generating-datatable-with-python), after "Add data from top menu"
+
+
+# Dev notes
+## Creating local env for development
 ```conda env create -f environment.yml```
 ```conda activate fusarium_env1```
 ```python -m ipykernel install --user --name=fusarium_env1
@@ -74,3 +99,20 @@ First result:
 
 in env file: 
 ```DB_HOST=postgres``` for running python in swarm, otherwise ```DB_HOST=postgres```
+
+#https://docs.sqlalchemy.org/en/20/dialects/mssql.html
+
+https://citizix.com/how-to-run-mssql-server-2019-with-docker-and-docker-compose/
+https://stackoverflow.com/questions/70399243/how-to-fix-sql-server-2019-connection-error-due-to-certificate-issue
+
+
+https://desktop.arcgis.com/en/system-requirements/latest/database-requirements-sqlserver.htm
+https://pro.arcgis.com/en/pro-app/latest/help/data/databases/connect-sqlserver.htm
+
+https://pro.arcgis.com/en/pro-app/latest/help/data/geodatabases/manage-postgresql/get-started-gdb-in-postgresql.htm
+
+# ArcGis 
+https://pro.arcgis.com/en/pro-app/latest/tool-reference/image-analyst/interpolate-from-spatiotemporal-points.htm#:~:text=Interpolates%20temporal%20point%20data%20into%20a%20multidimensional%20raster.,create%20a%20slice%20in%20the%20output%20multidimensional%20raster.
+
+
+we can delete with the admin rights, the python and the arcgis user can read and write?

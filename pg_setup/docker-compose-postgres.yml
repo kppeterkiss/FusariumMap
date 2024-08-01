@@ -1,0 +1,44 @@
+
+services:
+  python:
+    build:
+      context: ..
+    environment:
+      ENV_NAME: ${CONDA_ENV_NAME}
+    volumes:
+      - ./:/code
+    command: >
+      sh -c "python -u load_data.py --swarm"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: "${DB_USER}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+    volumes:
+      #- ./tables:/docker-entrypoint-initdb.d/
+      - ./pg-data:/var/lib/postgresql/data
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
+    ports:
+      - 15080:80
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin/
+
+volumes:
+    pg-data:
+    pgadmin-data:
+
+
+
+
+

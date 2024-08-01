@@ -1,9 +1,15 @@
 import pandas as pd
 import json
 import os
+
+import sqlalchemy
+from pyodbc import OperationalError, InterfaceError
 from sqlalchemy_utils import drop_database, database_exists, create_database
+from sqlalchemy.sql import text
+
 from sqlalchemy import inspect, create_engine
 from datetime import timedelta, datetime
+from sqlserverport import *
 
 local_test_no_auth = True
 
@@ -15,6 +21,11 @@ import pandas as pd
 import requests
 import zipfile
 import numpy as np
+from sqlalchemy.engine import URL
+import pyodbc
+import platform    # For getting the operating system name
+import subprocess  # For executing a shell command
+
 
 #%%
 from datetime import date
@@ -32,34 +43,292 @@ hourly_data_folder_extracted= '../data/odp_met_hourly/extracted/'
 
 day_table_name = os.getenv("UPDATE_TIMES_TABLE_NAME")
 fusarium_table_name = os.getenv('FUSARIUM_TABLE_NAME')
+def check_connection(server, database, user, password,i):
+    print(f'Connecting to server: {i}')
+    conn=None
+    try:
+        conn = pyodbc.connect(
+            'DRIVER={ODBC Driver 17 for SQL Server};'
+            f'SERVER={server};'
+            f'DATABASE={database};'
+            f'UID={user};'
+            f'PWD={password}'
+        )
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+        conn.close()
+
+
+        print("Connection successful!")
+        return True
+    except Exception as e:
+        print(f"Connection failed: {e}")
+        return False
+
+def init_db(server, master_database, user, password, login_data) :
+    print('Running init script')
+    try:
+        conn = pyodbc.connect(
+            'DRIVER={ODBC Driver 17 for SQL Server};'
+            f'SERVER={server};'
+            f'DATABASE={master_database};'
+            f'UID={user};'
+            f'PWD={password}'
+        )
+        #conn.setdecoding(pyodbc.SQL_CHAR, encoding='latin1')
+        #conn.setencoding('latin1')
+        conn.autocommit=True
+        cursor = conn.cursor()
+
+        with open('../ms_setup/odp_init/02.sql', 'r') as file:
+            script = file.read()
+        cursor.execute(script)
+        cursor.execute("IF NOT EXISTS(SELECT * FROM sys.databases WHERE name='odp') "
+                       "BEGIN"
+                       "    CREATE DATABASE [odp] "
+                       "END")
+        cursor.commit()
+        while(cursor.nextset()):
+            pass
+
+        print('Init Script executed.')
+        #rows=cursor.fetchall()
+        # Process the results
+        #for row in rows:
+        #    print(row)
+        print('Creating users')
+        #with open('../ms_setup/odp_init/03.sql', 'r') as file:
+        #    script = file.read()
+        script=fill_script(login_data,'../ms_setup/odp_init/03.sql')
+        cursor.execute(script)
+        cursor.commit()
+        while (cursor.nextset()):
+            pass
+        #rows=cursor.fetchall()
+
+        # Process the results
+        #for row in rows:
+        #    print(row)
+
+        # Close the cursor and connection
+        cursor.close()
+        return True
+    except Exception as e:
+        print(f"Connection failed: {e}")
+        return False
+    finally:
+        conn.close()
 
 
 
+def ping_host(host):
+    # Ping the host
+    param = '-n' if subprocess.os.name == 'nt' else '-c'
+    command = ['ping', param, '1', host]
+    response = subprocess.call(command)
+
+    # Get the IP address
+    ip_address = socket.gethostbyname(host)
+
+    if response == 0:
+        print(f"{host} is up! IP address: {ip_address}")
+    else:
+        print(f"{host} is down! IP address: {ip_address}")
+    return ip_address
+from string import Template
+
+def fill_script(up_dict,fn):
+
+    # Define the data to substitute
+
+    # Read the template file
+    with open(fn, 'r') as file:
+        template = Template(file.read())
+
+    # Substitute the values
+    return template.substitute(up_dict)
 
 
+from urllib.parse import quote_plus
 
-def  get_connection_env(swarm_mode):
+
+def  get_connection_env(swarm_mode,dbms):
     CHARSET = "utf-8"
-
     DB_HOST = os.getenv("DB_HOST_LOCAL")
     if swarm_mode:
-        DB_HOST = os.getenv("DB_HOST_SWARM")
+        DB_HOST = os.getenv("DB_HOST_SWARM_PG")
+        if dbms=='mssql':
+            '''
+            import docker
+            def get_conainer_ip(container_name):
+                # Initialize the Docker client
+                client = docker.from_env()
+
+                # Replace 'container_name' with the name or ID of your container
+                container = client.containers.get(container_name)
+
+                # Get the IP address
+                ip_address = container.attrs['NetworkSettings']['IPAddress']
+                print(f"The IP address of the container is: {ip_address}")
+            '''
+
+            #get_conainer_ip()
+            DB_HOST = os.getenv("DB_HOST_SWARM_MS")
+            print('Host before resolution',DB_HOST)
+            DB_HOST = ping_host(DB_HOST) #get_conainer_ip(DB_HOST)
+
+    print(f'Host: {DB_HOST}' )
+
     # for local test with trust auth
     DB_USER = os.getenv("DB_USER")
     print("db usr", DB_USER)
     DB_PORT = os.getenv("DB_PORT")
     DB_PASS = os.getenv("DB_PASSWORD")
+    MS_DEFAULT_DATABASE = os.getenv("MS_DEFAULT_DATABASE")
+
     print("db pw:", DB_PASS)
     DATABASE = os.getenv("DATABASE_NAME")
     print("name:", DATABASE)
-
     connect_string = 'postgresql+psycopg2://{}:{}@{}:{}/{}'.format(DB_USER, DB_PASS, DB_HOST, DB_PORT, DATABASE)
+    DB_USER = os.getenv("DB_USER")
+
+
+
+    # mssql server SA password
+    MSSAPW= os.getenv('MSSQL_SA_PW')
+    if dbms=="mssql":
+        MSSQL_PYTHON_U = os.getenv("MSSQL_PYTHON_U")
+        MSSQL_PYTHON_PW = os.getenv("MSSQL_PYTHON_PW")
+
+        #https: // stackoverflow.com / questions / 73333718 / how - to - connect - to - sql - server -with-pyodbc - and - and -sqlalchemy
+        '''
+        connect_string = URL.create(
+            "mssql+pyodbc",
+            username="sa",
+            password=MSSQL_PYTHON_U,
+            host=MSSQL_PYTHON_PW,
+            port=1433,
+            database=DATABASE,
+            query={
+                "driver": "ODBC Driver 17 for SQL Server",
+                "Encrypt": "no",
+                "TrustServerCertificate": "yes",
+            },
+        )
+        '''
+        #connect_string = 'DRIVER={};SERVER={};PORT={}; DSN={};UID={};PWD={};autocommit=True'.format(
+        #    "{ODBC Driver 17 for SQL Server}", DB_HOST, 1433, "odb", "sa", MSSAPW)
+        #connect_string = 'mssql+pyodbc://tcp:sa:'+MSSAPW+'@' + DB_HOST + ':1433/' + DATABASE + '?TrustServerCertificate=yes&Encrypt=no&driver=ODBC+Driver+17+for+SQL+Server'
+        #connect_string = 'mssql+pyodbc://tcp:sa:'+MSSAPW+'@' + DB_HOST + ':1433/' + DATABASE + '?TrustServerCertificate=yes&Encrypt=no&driver=FreeTDS'
+
+        #try:
+        ready=False
+        i=0
+        while((not ready) and i <10):
+            i+=1
+            ready =check_connection(DB_HOST,"master","sa",MSSAPW,i)
+            time.sleep(2)
+        if ready:
+            print('Server is up.')
+
+        print('Attepting to connect:', connect_string)
+        '''
+        engine = create_engine(connect_string, echo=True,fast_executemany=True)
+        engine.connect()
+        '''
+        login_data={"MSSQL_PYTHON_U":MSSQL_PYTHON_U,"MSSQL_PYTHON_PW":MSSQL_PYTHON_PW,"MSSQL_ARCGIS_U":os.getenv("MSSQL_ARCGIS_U"),"MSSQL_ARCGIS_PW":os.getenv("MSSQL_ARCGIS_PW")}
+        if init_db(DB_HOST,"master","sa",MSSAPW,login_data=login_data):
+            print("DBO initialised")
+
+        #cn = 'DRIVER={};SERVER={};DSN={};UID={};PWD={};Trusted_Connection=No;TrustServerCertificate=yes;Encrypt=no;autocommit=True'.format("{ODBC Driver 17 for SQL Server}",DB_HOST+","+str(1433),DATABASE,MSSQL_PYTHON_U,'%s')
+
+        #cn = 'DRIVER={};SERVER={};DSN={};UID={};PWD={};autocommit=True'.format("FreeTDS",DB_HOST+","+str(1433),DATABASE,"sa",MSSAPW)
+
+        #
+        #conn=pyodbc.connect(cn)
+        #connection_url = URL.create(
+        #    "mssql+pyodbc",
+        #    query={"odbc_connect": cn %  quote_plus(MSSQL_PYTHON_PW)}
+        #)
+        connect_string = URL.create(
+            "mssql+pyodbc",
+            username=MSSQL_PYTHON_U,
+            password=MSSQL_PYTHON_PW,
+            host=DB_HOST,
+            port=1433,
+            database=DATABASE,
+            query={
+                "driver": "ODBC Driver 17 for SQL Server",
+                "Encrypt": "no",
+                "TrustServerCertificate": "yes",
+            },
+        )
+        print("Connecting to odb database:", connect_string)
+
+        #connect_string= connection_url
+
+        engine = create_engine(connect_string )
+        engine.connect()
+
+        # example.py
+
+        print('Connected to:',connect_string)
+        '''
+        except  sqlalchemy.exc.InterfaceError:
+            print('Database does not exist, creating...')
+            #engine = create_engine(ms_default_connect_string, echo=True)
+            cn = 'DRIVER={};SERVER={};DSN={};UID={};PWD={};autocommit=True;Trusted_Connection=No;TrustServerCertificate=yes;Encrypt=no;'.format("{ODBC Driver 17 for SQL Server}",DB_HOST+","+str(1433),"master","sa",MSSAPW)
+            print("Connecting to default database:", cn)
+            conn = pyodbc.connect(cn)
+            conn.autocommit = True
+            cursor = conn.cursor()
+        
+            # Execute a query
+
+
+            with open('../ms_setup/odp_init/02.sql', 'r') as file:
+                script = file.read()
+            # Check if the database exists, and create it if not
+
+            cursor.execute(
+                    "IF NOT EXISTS(SELECT * FROM sys.databases WHERE name='{}') CREATE DATABASE {};".format(DATABASE,
+                                                                                                  DATABASE))
+            # Fetch all results
+            rows = cursor.fetchall()
+
+            # Process the results
+            for row in rows:
+                print(row)
+            cursor.execute(script)
+
+            # Fetch all results
+            rows = cursor.fetchall()
+
+            # Process the results
+            for row in rows:
+                print(row)
+
+            # Close the cursor and connection
+            cursor.close()
+            conn.close()
+            print(f"Database {DATABASE} created.")
+            #conn.close()
+            print('Attept to connect to new database:', connect_string)
+            engine = create_engine(connection_url, echo=True,fast_executemany=True)
+            engine.connect()
+            print('Connected to:', connection_url)
+        '''
+        # https://docs.sqlalchemy.org/en/20/dialects/mssql.html
+        #connect_string=f"mssql+pyodbc://sa:{MSSAPW}@{DB_HOST}:1433/{DATABASE}?driver=ODBC+Driver+18+for+SQL+Server&TrustServerCertificate=True&Encrypt=no?&Encrypt=no"
+        return engine
     print(connect_string)
 
     if not database_exists(connect_string):
         create_database(connect_string)
 
-    engine = create_engine(connect_string, connect_args={'client_encoding': CHARSET})
+    engine = create_engine(connect_string, connect_args={'client_encoding': CHARSET}, pool_pre_ping=True)
+
     return engine
 
 
@@ -79,16 +348,16 @@ def get_db_table(tn, engine):
 
 
 def write_table(tn, df, engine):
-    df.to_sql(tn, engine, if_exists='replace', method='multi', index=False)
+    df.to_sql(tn, engine, if_exists='replace', index=False)
 
 
 def add_update_time(lst, engine):
     df = pd.DataFrame({'Time': lst})
-    df.to_sql(day_table_name, engine, if_exists='replace', method='multi', index=False)
+    df.to_sql(day_table_name, engine, if_exists='replace',  index=False)
 
 
 def append_to_table(name, df, engine, mode='append'):
-    df.to_sql(name, engine, if_exists='append', method='multi', index=False)
+    df.to_sql(name, engine, if_exists='append',  index=False)
 
 
 
@@ -295,14 +564,15 @@ def setup_dirs():
         # Create a new directory because it does not exist
         os.makedirs(hourly_data_folder_extracted)
 
-def main(swarm_mode):
+def main(swarm_mode,dbms):
     print('Chacking for data updates..')
     load_dotenv()
-    engine = get_connection_env()
+    engine = get_connection_env(swarm_mode,dbms)
     # load from the update_times table the already processed timestamps
     times_already_loaded = get_update_times_already_loaded(engine)
     data_folder = '../data/odp_met_daily/'
     df = scrap_and_load_input_data(times_already_loaded, engine)
+    df.to_csv('new_data.csv',index=False)
     if df.empty:
         print("No new data")
         return
@@ -330,19 +600,24 @@ def arg_parse():
 
     parser.add_argument('--swarm',
                         action='store_true', help="Switch to swarm mode")
-
+    parser.add_argument('--schedule',
+                        action='store_true', help="Scheduled execution mode")
+    parser.add_argument('--dbms', help="DDBS to use (podtgres or mssql)", type= str, default= "mssql")
     return parser.parse_args()
 
 if __name__ == "__main__":
+    setup_dirs()
     args = arg_parse()
-    i=0
-    schedule.every().hour.at(":10").do(main, args.swarm)
+    if args.swarm:
+        time.sleep(10)
+    main(args.swarm, args.dbms)
 
-    while i < 30:
-        schedule.run_pending()
-        time.sleep(600)
-        print('waiting..')
-        i += 1
-    '''
-    main()
-    '''
+    if args.schedule:
+        i=0
+        schedule.every().hour.at(":10").do(main, args.swarm,args.dbms)
+
+        while i < 30:
+            schedule.run_pending()
+            time.sleep(600)
+            print('waiting..')
+            i += 1

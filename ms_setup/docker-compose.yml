@@ -2,21 +2,18 @@
 services:
   python:
     build:
-      context: .
+      context: ..
     environment:
       ENV_NAME: ${CONDA_ENV_NAME}
     volumes:
       - ./:/code
-    command: >
-      sh -c "python -u load_data.py --swarm --schedule"
-    #stdin_open: true # docker run -i
-    #tty: true        # docker run -t
+    #command: >
+      # sh -c "python -u load_data.py --swarm"
     depends_on:
       - mssql
 
-
   mssql:
-    image: mcr.microsoft.com/mssql/server
+    image: mcr.microsoft.com/mssql/server:2019-latest
     ports:
       - 1433:1433
     volumes:
@@ -27,9 +24,8 @@ services:
       - SA_PASSWORD=${MSSQL_SA_PW}
 
 
-
 volumes:
-    mssql-data:
+    mssql-dat
 
 
 
