@@ -106,8 +106,8 @@ manually:
 Result:
 ![Time allowed mosaic](img/arcgisv2.gif "Time allowed mosaic")
 
-[Toolbox (atbx file)](ArcGis files/MyProject.atbx)
-[Map (mpkx file)](ArcGis files/Map.mpkx)
+[Toolbox (atbx file)](./ArcGis_files/MyProject.atbx)
+[Map (mpkx file)](./ArcGis_files/Map.mpkx)
 
 
 
