@@ -67,6 +67,10 @@ First result:
   - load previous day from fusarium table 
   - calculate recent p add to fusarium table new data rows  
 
+## V3
+- automise processing connection to database (under development)
+- online pulblication (to be solved..)
+
 ### Data collection:
 
 prerequistes:
@@ -87,19 +91,17 @@ Adding database:
 ![add connection 2](img/db_conn.png)
 3.
 ![add data from table](img/add_data_to_proj.png)
-4. Continues as at [v1](#Generating-datatable-with-python), after "Add data from top menu"
+4.  Arcgis workflow state :
 
-
-* Arcgis workflow *
-model builder
-- load data from db to feature class
-- select data interval
-- iterate by time over the chosen interval
-- interpolate raster from point measurements
-- add to time allowed mosaic dataset.
-manually:
-- allow time on mosaic
-- setup symbology
+- **model builder/toolbox**
+  - load data from db to feature class
+  - select data interval
+  - iterate by time over the chosen interval
+  - interpolate raster from point measurements
+  - add to time allowed mosaic dataset.
+- manually:
+  - allow time on mosaic
+  - setup symbology
 
 
 
@@ -107,6 +109,7 @@ Result:
 ![Time allowed mosaic](img/arcgisv2.gif "Time allowed mosaic")
 
 [Toolbox (atbx file)](./ArcGis_files/MyProject.atbx)
+
 [Map (mpkx file)](./ArcGis_files/Map.mpkx)
 
 
