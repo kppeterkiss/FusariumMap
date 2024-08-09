@@ -90,6 +90,29 @@ Adding database:
 4. Continues as at [v1](#Generating-datatable-with-python), after "Add data from top menu"
 
 
+* Arcgis workflow *
+model builder
+- load data from db to feature class
+- select data interval
+- iterate by time over the chosen interval
+- interpolate raster from point measurements
+- add to time allowed mosaic dataset.
+manually:
+- allow time on mosaic
+- setup symbology
+
+
+
+Result:
+![Time allowed mosaic](img/arcgisv2.gif "Time allowed mosaic")
+
+[Toolbox (atbx file)](ArcGis files/MyProject.atbx)
+[Map (mpkx file)](ArcGis files/Map.mpkx)
+
+
+
+
+
 # Dev notes
 ## Creating local env for development
 ```conda env create -f environment.yml```
@@ -97,6 +120,13 @@ Adding database:
 ```python -m ipykernel install --user --name=fusarium_env1
 ```
 
+mssql date query :
+
+```select * from dbo.fusarium where Time >= CONVERT(datetime, '2024-08-07 11:00:00', 20)```
+
+```select * from dbo.fusarium where Time >= DATEADD(day, -1, GETDATE())```
+
+```fusarium_XYTableToPoint1.Time > CURRENT_TIMESTAMP()-0.5```
 in env file: 
 ```DB_HOST=postgres``` for running python in swarm, otherwise ```DB_HOST=postgres```
 
@@ -114,5 +144,19 @@ https://pro.arcgis.com/en/pro-app/latest/help/data/geodatabases/manage-postgresq
 # ArcGis 
 https://pro.arcgis.com/en/pro-app/latest/tool-reference/image-analyst/interpolate-from-spatiotemporal-points.htm#:~:text=Interpolates%20temporal%20point%20data%20into%20a%20multidimensional%20raster.,create%20a%20slice%20in%20the%20output%20multidimensional%20raster.
 
+https://unidata.github.io/MetPy/latest/examples/gridding/Point_Interpolation.html
 
+https://developers.arcgis.com/documentation/spatial-analysis-services/feature-analysis/analyze-patterns/interpolate-points/
+
+https://pro.arcgis.com/en/pro-app/latest/help/data/imagery/time-in-a-mosaic-dataset-pro-.htm#:~:text=Mosaic%20datasets%20can%20be%20used%20to%20show%20multiple,Attribute%20mosaic%20method%2C%20or%20with%20the%20Time%20slider.
+
+https://community.esri.com/t5/python-questions/iterate-dataset-and-workspace-to-add-rasters-to/td-p/656974
+
+https://www.esri.com/arcgis-blog/products/js-api-arcgis/mapping/six-ways-to-visualize-change-over-time-in-web-maps/
 we can delete with the admin rights, the python and the arcgis user can read and write?
+
+checking out table only in enterprise licance   ??
+https://pro.arcgis.com/en/pro-app/latest/tool-reference/tool-errors-and-warnings/001001-010000/tool-errors-and-warnings-00301-00325-000301.htm
+
+Datetime diff 
+https://www.esri.com/arcgis-blog/products/api-rest/data-management/querying-feature-services-date-time-queries/
