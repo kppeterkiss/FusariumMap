@@ -1,11 +1,12 @@
-name: fusarium_env1
+doname: fusarium_env2
 channels:
   - anaconda
   - anaconda-fusion
   - defaults
   - conda-forge
+  - esri
 dependencies:
-  - python==3.12
+  - python==3.11
   - psycopg2
   - pandas
   - sqlalchemy
@@ -19,8 +20,9 @@ dependencies:
   - ipykernel
   - jupyter
   - pyodbc
-  - fakechroot
+  #- fakechroot
   - docker-py
   - python-dotenv
+  - esri::arcgis
   #- pip:
   #  - git+https://github.com/blaze/dask.git#egg=dask[complete]
