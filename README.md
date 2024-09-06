@@ -104,6 +104,16 @@ Adding database:
   - setup symbology
 
 
+Portability + Refactoring of the arcgis model:
+- need a connection file sde:  having a final db location it should be portable too
+- for more efficient processing:
+  - itearive processing of hourly data into submodel
+    - parameters: 
+      - final mosaic dataset to add the rasters to it
+      - time enabled feature class of recent data - to iterate over
+  - main model pull data and get the recent records, creation of the result mosaic dataset
+  - 
+
 
 Result:
 ![Time allowed mosaic](img/arcgisv2.gif "Time allowed mosaic")
@@ -163,3 +173,6 @@ https://pro.arcgis.com/en/pro-app/latest/tool-reference/tool-errors-and-warnings
 
 Datetime diff 
 https://www.esri.com/arcgis-blog/products/api-rest/data-management/querying-feature-services-date-time-queries/
+
+Arcgis share and schedule:
+https://resource.esriuk.com/blog/automate-with-modelbuilder-a-123-guide/#:~:text=Go%20to%20the%20ModelBuilder%20tab%2C%20then%20to%20the,all%20your%20files%20and%20select%20the%20Feature%20Type.

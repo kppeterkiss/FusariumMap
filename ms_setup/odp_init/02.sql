@@ -1,8 +1,8 @@
 USE [master];
 
-IF NOT EXISTS(SELECT * FROM sys.databases WHERE name='odp')
+IF NOT EXISTS(SELECT * FROM sys.databases WHERE name='$DATABASE_NAME')
 BEGIN
-    CREATE DATABASE [odp];
+    CREATE DATABASE [$DATABASE_NAME];
 END
 
 

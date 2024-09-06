@@ -3,11 +3,12 @@ import json
 import os
 
 import sqlalchemy
+from pandas.core.dtypes.common import is_string_dtype
 from pyodbc import OperationalError, InterfaceError
 from sqlalchemy_utils import drop_database, database_exists, create_database
 from sqlalchemy.sql import text
 
-from sqlalchemy import inspect, create_engine
+from sqlalchemy import inspect, create_engine, VARCHAR
 from datetime import timedelta, datetime
 from sqlserverport import *
 
@@ -81,13 +82,14 @@ def init_db(server, master_database, user, password, login_data) :
         conn.autocommit=True
         cursor = conn.cursor()
 
-        with open('../ms_setup/odp_init/02.sql', 'r') as file:
-            script = file.read()
+        #with open('../ms_setup/odp_init/02.sql', 'r') as file:
+        #    script = file.read()
+        script=fill_script(login_data, '../ms_setup/odp_init/02.sql')
         cursor.execute(script)
-        cursor.execute("IF NOT EXISTS(SELECT * FROM sys.databases WHERE name='odp') "
-                       "BEGIN"
-                       "    CREATE DATABASE [odp] "
-                       "END")
+        #cursor.execute("IF NOT EXISTS(SELECT * FROM sys.databases WHERE name='odp') "
+        #               "BEGIN"
+        #               "    CREATE DATABASE [odp] "
+        #               "END")
         cursor.commit()
         while(cursor.nextset()):
             pass
@@ -200,6 +202,7 @@ def  get_connection_env(swarm_mode,dbms):
     if dbms=="mssql":
         MSSQL_PYTHON_U = os.getenv("MSSQL_PYTHON_U")
         MSSQL_PYTHON_PW = os.getenv("MSSQL_PYTHON_PW")
+        DATABASE_NAME = os.getenv("DATABASE_NAME")
 
         #https: // stackoverflow.com / questions / 73333718 / how - to - connect - to - sql - server -with-pyodbc - and - and -sqlalchemy
         '''
@@ -237,7 +240,7 @@ def  get_connection_env(swarm_mode,dbms):
         engine = create_engine(connect_string, echo=True,fast_executemany=True)
         engine.connect()
         '''
-        login_data={"MSSQL_PYTHON_U":MSSQL_PYTHON_U,"MSSQL_PYTHON_PW":MSSQL_PYTHON_PW,"MSSQL_ARCGIS_U":os.getenv("MSSQL_ARCGIS_U"),"MSSQL_ARCGIS_PW":os.getenv("MSSQL_ARCGIS_PW")}
+        login_data={"DATABASE_NAME":DATABASE_NAME, "MSSQL_PYTHON_U":MSSQL_PYTHON_U,"MSSQL_PYTHON_PW":MSSQL_PYTHON_PW,"MSSQL_ARCGIS_U":os.getenv("MSSQL_ARCGIS_U"),"MSSQL_ARCGIS_PW":os.getenv("MSSQL_ARCGIS_PW")}
         if init_db(DB_HOST,"master","sa",MSSAPW,login_data=login_data):
             print("DBO initialised")
 
@@ -357,7 +360,12 @@ def add_update_time(lst, engine):
 
 
 def append_to_table(name, df, engine, mode='append'):
-    df.to_sql(name, engine, if_exists='append',  index=False)
+    type_dict={}
+    for col_name, col_dtype in zip(df.columns, df.dtypes):
+        if is_string_dtype(df[col_name]):
+            type_dict[col_name]=VARCHAR(length=50)
+
+    df.to_sql(name, engine, if_exists='append',  index=False,dtype=type_dict)
 
 
 
@@ -398,7 +406,7 @@ def get_soup(url):
 
 count = 0
 new_data = []
-def scrap_and_load_input_data(dates,engine):
+def  scrap_and_load_input_data(dates,engine):
     # dfs: list of all the new dataframes that comes from the new scrap
     dfs = []
     # check what files are on the page
@@ -443,6 +451,8 @@ def scrap_and_load_input_data(dates,engine):
             for f in os.listdir(extracted_folder):
                 # content of file to df
                 df = pd.read_csv(extracted_folder + f, sep=";", skipinitialspace=True,parse_dates=['Time'], date_format='%Y%m%d%H%M%S')
+                df.columns = df.columns.str.strip()
+                clean_weather_df(df)
                 # collect dataframes in order to process for the result fusarium table
                 dfs.append(df)
                 # load the data from file into weather table
@@ -569,13 +579,21 @@ def main(swarm_mode,dbms):
     load_dotenv()
     engine = get_connection_env(swarm_mode,dbms)
     # load from the update_times table the already processed timestamps
-    times_already_loaded = get_update_times_already_loaded(engine)
+    times_already_loaded = []# get_update_times_already_loaded(engine)
     data_folder = '../data/odp_met_daily/'
     df = scrap_and_load_input_data(times_already_loaded, engine)
-    df.to_csv('new_data.csv',index=False)
+
     if df.empty:
         print("No new data")
         return
+
+    #df['fxdat']=df['fxdat'].astype(pd.Timedelta)
+
+    '''
+    df['fxdat'] = df['fxdat'].str.split(':', expand=True).astype(int)  
+    df['fxdat'] = pd.to_timedelta(df['fxdat'][0], unit='h') + pd.to_timedelta(df['fxdat'][1], unit='m')
+    '''
+    df.to_csv('new_data.csv',index=False)
     # what is the first measurement time in the new data?
     # we will load from fusarium table the processed data from an hour before,
     #in order to combine it with recent data
@@ -583,6 +601,18 @@ def main(swarm_mode,dbms):
     incremented = increment_p(df, time, fusarium_table_name,engine)
     incremented = incremented[['Time', 'u', 'ta', 'Latitude', 'Longitude', 'StationNumber','TRH9010_cond','TRH9010','p']]
     append_to_table(fusarium_table_name, incremented, engine)
+
+
+def clean_weather_df(df):
+    df.drop('EOR', inplace=True, axis=1)
+    df.replace({-999: np.nan, -999.0: np.nan, "-999": np.nan}, inplace=True)
+
+    def get_time_span(s):
+        print(s)
+        a = s.split(':')
+        return pd.to_timedelta(int(a[0]), unit='h') + pd.to_timedelta(int(a[1]), unit='m')
+
+    df['fxdat'] = df['fxdat'].apply(lambda x: get_time_span(x) if pd.notnull(x) else x)
 
 
 import schedule

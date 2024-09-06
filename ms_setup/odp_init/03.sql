@@ -21,7 +21,7 @@ END
 
 
 
-USE [odp]
+USE [$DATABASE_NAME]
 /* Create the user for the specified login. */
 IF NOT EXISTS(SELECT principal_id FROM sys.database_principals WHERE name = '$MSSQL_PYTHON_U') BEGIN
     CREATE USER $MSSQL_PYTHON_U FOR LOGIN $MSSQL_PYTHON_U
