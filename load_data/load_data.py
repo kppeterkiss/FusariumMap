@@ -647,7 +647,11 @@ if __name__ == "__main__":
         schedule.every().hour.at(":10").do(main, args.swarm,args.dbms)
 
         while i < 30:
-            schedule.run_pending()
-            time.sleep(600)
-            print('waiting..')
-            i += 1
+            try:
+                schedule.run_pending()
+                time.sleep(600)
+                print('waiting..')
+                i += 1
+            except requests.exceptions.ConnectionError as e:
+                print("Connection error", e)
+
