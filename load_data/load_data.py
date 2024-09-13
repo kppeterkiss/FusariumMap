@@ -608,7 +608,7 @@ def clean_weather_df(df):
     df.replace({-999: np.nan, -999.0: np.nan, "-999": np.nan}, inplace=True)
 
     def get_time_span(s):
-        print(s)
+        #print(s)
         a = s.split(':')
         return pd.to_timedelta(int(a[0]), unit='h') + pd.to_timedelta(int(a[1]), unit='m')
 
@@ -653,5 +653,5 @@ if __name__ == "__main__":
                 print('waiting..')
                 i += 1
             except requests.exceptions.ConnectionError as e:
-                print("Connection error", e)
+                print("Connection error:", e)
 
